@@ -1,0 +1,25 @@
+{
+  "name": "back-ex",
+  "version": "1.0.0",
+  "description": "Backend installator for backend",
+  "main": "createProject.js",
+  "bin": {
+    "back-ex": "./bin/createProject.js"
+  },
+  "scripts": {
+    "start": "node ./bin/createProject.js"
+  },
+  "keywords": [
+    "backend",
+    "installator",
+    "cli"
+  ],
+  "author": "Richard-Tekula",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "fs-extra": "^10.1.0",
+    "inquirer": "^12.4.2"
+  }
+}
