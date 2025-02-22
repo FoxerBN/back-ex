@@ -6,12 +6,9 @@ import inquirer from "inquirer";
 import { fileURLToPath } from "url";
 
 /**
- * Vytvorí projekt s Express API a voliteľným TS/JS + MongoDB.
- * Obsahuje aj middleware na kontrolu tela požiadavky.
- *
- * @param {string} projectName - Názov projektu
- * @param {boolean} useTypescript - True, ak je potrebná TypeScript verzia
- * @param {string} dbChoice - "none" | "mongo"
+ * @param {string} projectName
+ * @param {boolean} useTypescript
+ * @param {string} dbChoice
  */
 export function createProject(projectName, useTypescript, dbChoice) {
   const projectPath = path.join(process.cwd(), projectName);
@@ -348,7 +345,7 @@ import { MessageResponse } from './interfaces/MessageResponse';
 
     // Show how to optionally import and connect to DB
     if (dbChoice === "mongo") {
-      appTsContent += `\n// import { connectDB } from './config/db';\n// connectDB(); // Uncomment to enable DB connection\n`;
+      appTsContent += `\n// import { connectDB } from './config/db';\n import mongoSanitize from 'express-mongo-sanitize';\n// connectDB(); // Uncomment to enable DB connection\n//mongoSanitize()`;
     }
 
     appTsContent += `
@@ -446,7 +443,7 @@ import { errorHandler } from './middlewares/global/errorHandler.js';
 `;
 
     if (dbChoice === "mongo") {
-      appJsContent += `\n// import { connectDB } from './config/db.js';\n// connectDB(); // Uncomment to enable DB connection\n`;
+      appJsContent += `\n// import { connectDB } from './config/db.js';\n import mongoSanitize from 'express-mongo-sanitize';\n // connectDB(); \n// Uncomment to enable DB connection\n//mongoSanitize()`;
     }
 
     appJsContent += `
