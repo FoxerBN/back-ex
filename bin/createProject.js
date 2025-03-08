@@ -9,8 +9,14 @@ import { fileURLToPath } from "url";
  * @param {string} projectName
  * @param {boolean} useTypescript
  * @param {string} dbChoice
+ * @param {boolean} useCloudinary
  */
-export function createProject(projectName, useTypescript, dbChoice) {
+export function createProject(
+  projectName,
+  useTypescript,
+  dbChoice,
+  useCloudinary
+) {
   const projectPath = path.join(process.cwd(), projectName);
 
   // Check if folder already exists
@@ -45,6 +51,12 @@ export function createProject(projectName, useTypescript, dbChoice) {
       "express-mongo-sanitize": "^2.2.0",
     };
     envExtras = "MONGODB_URI=<your mongodb uri here>\n";
+  }
+  if (useCloudinary) {
+    // Add Cloudinary dependency
+    extraDependencies = { ...extraDependencies, cloudinary: "^1.37.2" };
+    // Append Cloudinary env variables
+    envExtras += "CLOUD_NAME=\nCLOUD_API_KEY=\nCLOUD_API_SECRET=\n";
   }
 
   // ********************
@@ -128,7 +140,7 @@ export function createProject(projectName, useTypescript, dbChoice) {
   // ****************
   // .env file
   // ****************
-  // Always have a default PORT + extra lines for chosen DB if any
+  // Always have a default PORT + extra lines for chosen DB/Cloudinary if any
   const envContent = `PORT=5000
 NODE_ENV=development
 ${envExtras}`;
@@ -247,9 +259,6 @@ export async function connectDB() {
   }
 }
 `;
-  }
-
-  if (dbChoice === "mongo") {
     const dbExtension = useTypescript ? "ts" : "js";
     fs.writeFileSync(
       path.join(projectPath, "src", "config", `db.${dbExtension}`),
@@ -257,10 +266,41 @@ export async function connectDB() {
     );
   }
 
+  // **************************************
+  // Cloudinary FILE: config/cloudinary.(js|ts)
+  // **************************************
+  if (useCloudinary) {
+    const cloudinaryContent = useTypescript
+      ? `import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
+});
+
+export default cloudinary;
+`
+      : `import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
+});
+
+export default cloudinary;
+`;
+    const ext = useTypescript ? "ts" : "js";
+    fs.writeFileSync(
+      path.join(projectPath, "src", "config", `cloudinary.${ext}`),
+      cloudinaryContent
+    );
+  }
+
   // ************************************
   // Create security middleware (validateBody)
   // ************************************
-  // A complex regex that catches SQL/NoSQL injections, XSS, shell commands, etc.
   if (useTypescript) {
     fs.writeFileSync(
       path.join(projectPath, "src", "middlewares", "global", "validateBody.ts"),
@@ -274,12 +314,12 @@ export function validateBody(req: Request, res: Response, next: NextFunction) {
 
   // 🚨 Complex regex to detect dangerous patterns
   const dangerousPatterns = [
-    /(\\b(SELECT|INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|EXEC|UNION|LOAD_FILE|OUTFILE)\\b.*\\b(FROM|INTO|TABLE|DATABASE)\\b)/gi, // SQL injection
-    /\\b(OR 1=1|AND 1=1|OR '1'='1'|--|#|\\/\\*|\\*\\/|;|\\bUNION\\b.*?\\bSELECT\\b)/gi, // Common SQL bypass tricks
-    /\\b(\\$where|\\$ne|\\$gt|\\$lt|\\$regex|\\$exists|\\$not|\\$or|\\$and)\\b/gi, // NoSQL injection
-    /(<script|<\\/script>|document\\.cookie|eval\\(|alert\\(|javascript:|onerror=|onmouseover=)/gi, // XSS
-    /(\\bexec\\s*xp_cmdshell|\\bshutdown\\b|\\bdrop\\s+database|\\bdelete\\s+from)/gi, // OS Command Injection
-    /(\\b(base64_decode|cmd|powershell|wget|curl|rm -rf|nc -e|perl -e|python -c)\\b)/gi, // Shell command injection
+    /(\\b(SELECT|INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|EXEC|UNION|LOAD_FILE|OUTFILE)\\b.*\\b(FROM|INTO|TABLE|DATABASE)\\b)/gi,
+    /\\b(OR 1=1|AND 1=1|OR '1'='1'|--|#|\\/\\*|\\*\\/|;|\\bUNION\\b.*?\\bSELECT\\b)/gi,
+    /\\b(\\$where|\\$ne|\\$gt|\\$lt|\\$regex|\\$exists|\\$not|\\$or|\\$and)\\b/gi,
+    /(<script|<\\/script>|document\\.cookie|eval\\(|alert\\(|javascript:|onerror=|onmouseover=)/gi,
+    /(\\bexec\\s*xp_cmdshell|\\bshutdown\\b|\\bdrop\\s+database|\\bdelete\\s+from)/gi,
+    /(\\b(base64_decode|cmd|powershell|wget|curl|rm -rf|nc -e|perl -e|python -c)\\b)/gi,
   ];
 
   for (const pattern of dangerousPatterns) {
@@ -304,12 +344,12 @@ export function validateBody(req, res, next) {
 
   // 🚨 Complex regex to detect dangerous patterns
   const dangerousPatterns = [
-    /(\\b(SELECT|INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|EXEC|UNION|LOAD_FILE|OUTFILE)\\b.*\\b(FROM|INTO|TABLE|DATABASE)\\b)/gi, // SQL injection
-    /\\b(OR 1=1|AND 1=1|OR '1'='1'|--|#|\\/\\*|\\*\\/|;|\\bUNION\\b.*?\\bSELECT\\b)/gi, // Common SQL bypass tricks
-    /\\b(\\$where|\\$ne|\\$gt|\\$lt|\\$regex|\\$exists|\\$not|\\$or|\\$and)\\b/gi, // NoSQL injection
-    /(<script|<\\/script>|document\\.cookie|eval\\(|alert\\(|javascript:|onerror=|onmouseover=)/gi, // XSS
-    /(\\bexec\\s*xp_cmdshell|\\bshutdown\\b|\\bdrop\\s+database|\\bdelete\\s+from)/gi, // OS Command Injection
-    /(\\b(base64_decode|cmd|powershell|wget|curl|rm -rf|nc -e|perl -e|python -c)\\b)/gi, // Shell command injection
+    /(\\b(SELECT|INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|EXEC|UNION|LOAD_FILE|OUTFILE)\\b.*\\b(FROM|INTO|TABLE|DATABASE)\\b)/gi,
+    /\\b(OR 1=1|AND 1=1|OR '1'='1'|--|#|\\/\\*|\\*\\/|;|\\bUNION\\b.*?\\bSELECT\\b)/gi,
+    /\\b(\\$where|\\$ne|\\$gt|\\$lt|\\$regex|\\$exists|\\$not|\\$or|\\$and)\\b/gi,
+    /(<script|<\\/script>|document\\.cookie|eval\\(|alert\\(|javascript:|onerror=|onmouseover=)/gi,
+    /(\\bexec\\s*xp_cmdshell|\\bshutdown\\b|\\bdrop\\s+database|\\bdelete\\s+from)/gi,
+    /(\\b(base64_decode|cmd|powershell|wget|curl|rm -rf|nc -e|perl -e|python -c)\\b)/gi,
   ];
 
   for (const pattern of dangerousPatterns) {
@@ -329,7 +369,6 @@ export function validateBody(req, res, next) {
   // Create the main source files
   // ********************************
   if (useTypescript) {
-    // app.ts
     let appTsContent = `import express from 'express';
 import morgan from 'morgan';
 import helmet from 'helmet';
@@ -342,12 +381,9 @@ import { notFound } from './middlewares/global/notFound';
 import { errorHandler } from './middlewares/global/errorHandler';
 import { MessageResponse } from './interfaces/MessageResponse';
 `;
-
-    // Show how to optionally import and connect to DB
     if (dbChoice === "mongo") {
-      appTsContent += `\n// import { connectDB } from './config/db';\n import mongoSanitize from 'express-mongo-sanitize';\n// connectDB(); // Uncomment to enable DB connection\n//mongoSanitize()`;
+      appTsContent += `\n// import { connectDB } from './config/db';\nimport mongoSanitize from 'express-mongo-sanitize';\n// connectDB(); // Uncomment to enable DB connection\n// mongoSanitize()`;
     }
-
     appTsContent += `
 const app = express();
 
@@ -373,7 +409,6 @@ export default app;
 `;
     fs.writeFileSync(path.join(projectPath, "src", "app.ts"), appTsContent);
 
-    // index.ts
     const indexTsContent = `import app from './app';
 
 const port = process.env.PORT || 5000;
@@ -383,7 +418,6 @@ app.listen(port, () => {
 `;
     fs.writeFileSync(path.join(projectPath, "src", "index.ts"), indexTsContent);
 
-    // Middlewares
     fs.writeFileSync(
       path.join(projectPath, "src", "middlewares", "global", "notFound.ts"),
       `import { Request, Response, NextFunction } from 'express';
@@ -411,7 +445,6 @@ export function errorHandler(err: Error, req: Request, res: Response<ErrorRespon
 `
     );
 
-    // Interfaces
     fs.mkdirpSync(path.join(projectPath, "src", "interfaces"));
     fs.writeFileSync(
       path.join(projectPath, "src", "interfaces", "MessageResponse.ts"),
@@ -429,7 +462,6 @@ export function errorHandler(err: Error, req: Request, res: Response<ErrorRespon
 `
     );
   } else {
-    // --- JS variant ---
     let appJsContent = `import express from 'express';
 import morgan from 'morgan';
 import helmet from 'helmet';
@@ -441,11 +473,9 @@ import { validateBody } from './middlewares/global/validateBody.js';
 import { notFound } from './middlewares/global/notFound.js';
 import { errorHandler } from './middlewares/global/errorHandler.js';
 `;
-
     if (dbChoice === "mongo") {
-      appJsContent += `\n// import { connectDB } from './config/db.js';\n import mongoSanitize from 'express-mongo-sanitize';\n // connectDB(); \n// Uncomment to enable DB connection\n//mongoSanitize()`;
+      appJsContent += `\n// import { connectDB } from './config/db.js';\nimport mongoSanitize from 'express-mongo-sanitize';\n// connectDB(); \n// Uncomment to enable DB connection\n// mongoSanitize()`;
     }
-
     appJsContent += `
 const app = express();
 
@@ -471,7 +501,6 @@ export default app;
 `;
     fs.writeFileSync(path.join(projectPath, "src", "app.js"), appJsContent);
 
-    // index.js
     const indexJsContent = `import app from './app.js';
 
 const port = process.env.PORT || 5000;
@@ -481,7 +510,6 @@ app.listen(port, () => {
 `;
     fs.writeFileSync(path.join(projectPath, "src", "index.js"), indexJsContent);
 
-    // Middlewares
     fs.writeFileSync(
       path.join(projectPath, "src", "middlewares", "global", "notFound.js"),
       `export function notFound(req, res, next) {
@@ -512,7 +540,6 @@ app.listen(port, () => {
   console.log(lightBlue("📦  npm install"));
   console.log(lightBlue("🚀  npm run dev"));
 
-  // Explanation for TS vs JS file extensions:
   console.log();
   console.log(
     chalk.yellow(
@@ -529,7 +556,6 @@ const mainFile = fileURLToPath(import.meta.url);
 if (fs.realpathSync(process.argv[1]) === mainFile) {
   const args = process.argv.slice(2);
 
-  // If user didn't specify arguments, show inquirer
   if (!args[0]) {
     inquirer
       .prompt([
@@ -557,32 +583,39 @@ if (fs.realpathSync(process.argv[1]) === mainFile) {
             { name: "MongoDB", value: "mongo" },
           ],
         },
+        {
+          name: "cloudinary",
+          type: "confirm",
+          message: "Add Cloudinary connection?",
+          default: false,
+        },
       ])
       .then((answers) => {
-        const { projectName, language, database } = answers;
+        const { projectName, language, database, cloudinary } = answers;
         const isTs = language === "ts";
-        createProject(projectName, isTs, database);
+        createProject(projectName, isTs, database, cloudinary);
       })
       .catch((err) => {
         console.error(chalk.red("Error during project creation:"), err);
         process.exit(1);
       });
   } else {
-    // If arguments were provided
     const projectName = args[0];
     const useTS = args.includes("--ts") || args.includes("-ts");
 
-    // Simple DB arg check e.g. --db=mongo
     let dbChoice = "none";
     const dbArg = args.find((arg) => arg.startsWith("--db="));
     if (dbArg) {
       dbChoice = dbArg.split("=")[1];
     }
 
+    // Check for Cloudinary flag (e.g. --cloudinary)
+    const useCloudinary = args.includes("--cloudinary");
+
     if (!projectName) {
       console.error(chalk.red("❌ Prosím zadaj názov projektu."));
       process.exit(1);
     }
-    createProject(projectName, useTS, dbChoice);
+    createProject(projectName, useTS, dbChoice, useCloudinary);
   }
 }
