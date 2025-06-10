@@ -87,10 +87,12 @@ export function createProject(
           build: "tsc",
           "start:dist": "node dist/src/index.js",
           typecheck: "tsc --noEmit",
+          test: "jest",
         }
       : {
           dev: "nodemon src/index.js",
           start: "node src/index.js",
+          test: "node --experimental-vm-modules node_modules/.bin/jest"
         },
     keywords: [],
     author: "Richard Tekula",
@@ -98,6 +100,20 @@ export function createProject(
     dependencies,
     devDependencies,
     ...(useTypescript ? {} : { type: "module" }),
+    ...(useTypescript
+      ? {
+          jest: {
+            preset: "ts-jest",
+            testEnvironment: "node",
+          },
+        }
+      : {
+          jest: {
+            testEnvironment: "node",
+            transform: {}
+          },
+          type: "module",
+        }),
   };
   fs.writeFileSync(
     path.join(projectPath, "package.json"),
@@ -199,7 +215,40 @@ ${envExtras}`;
     );
   }
 
-  // 12. Final logs
+  // 12. Test folder and example test file
+  const testFolder = path.join(projectPath, "__tests__");
+  fs.mkdirpSync(testFolder);
+
+  const testFileName = `example.test.${useTypescript ? "ts" : "js"}`;
+  const testFileContent = useTypescript
+    ? `import request from "supertest";
+import app from "../src/app";
+
+describe("GET /", () => {
+  it("should return 200 and a message", async () => {
+    const res = await request(app).get("/");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/application\\/json/);
+    expect(res.body).toHaveProperty("message", "Hi there!");
+  });
+});
+`
+    : `import request from "supertest";
+import app from "../src/app.js";
+
+describe("GET /", () => {
+  it("should return 200 and a message", async () => {
+    const res = await request(app).get("/");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/application\\/json/);
+    expect(res.body).toHaveProperty("message", "Hi there!");
+  });
+});
+`;
+
+  fs.writeFileSync(path.join(testFolder, testFileName), testFileContent);
+
+  // 13. Final logs
   const lightBlue = chalk.hex("#ADD8E6");
   console.log(chalk.green("✅ Projekt bol úspešne vytvorený!"));
   console.log(lightBlue(`📂  cd ${projectName}`));

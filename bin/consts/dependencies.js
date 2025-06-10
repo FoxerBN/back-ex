@@ -9,6 +9,8 @@ export const BASE_DEPENDENCIES = {
 export const BASE_DEV_DEPENDENCIES = {
   nodemon: "^3.1.7",
   eslint: "latest",
+  jest: "^29.7.0",
+  supertest: "^6.3.4",
 };
 
 export const TS_DEPENDENCIES = {
@@ -24,6 +26,9 @@ export const TS_DEV_DEPENDENCIES = {
   "@types/node": "^22.7.5",
   "@typescript-eslint/eslint-plugin": "^7.16.1",
   "@typescript-eslint/parser": "^7.16.1",
+  "ts-jest": "^29.1.2",
+  "@types/jest": "^29.5.12",
+  "@types/supertest": "^2.0.12",
 };
 
 export const DB_DEPENDENCIES = {
