@@ -74,6 +74,20 @@ back-ex my-express-app --ts --db=mongo
 3. **Open the App**:
    The server starts at `http://localhost:5000` (or the port set in your `.env` file).
 
+
+✅ Built-in Testing Setup
+Every generated project comes with Jest already pre-installed and pre-configured for Node.js (ESM) testing out of the box.
+A sample test file is provided in __tests__/example.test.js (or .ts for TypeScript).
+You can immediately run the tests using:
+
+```bash
+   npm test
+   ```
+The project is ready for writing your own integration and unit tests.
+If you use ES modules (import/export), everything works by default (see Jest ESM docs if you need advanced configuration).
+
+   
+
 ## 🗂️ Project Structure
 
 Below is a quick overview of the generated structure (TypeScript variant shown):
